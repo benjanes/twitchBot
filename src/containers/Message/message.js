@@ -12,9 +12,34 @@ export class MessageDisplay extends Component {
 
   componentWillMount() {
     this.socket = io();
+
     this.socket.on('message', data => {
       this.props.getMessage(data);
     });
+  }
+
+  // when channel is selected from dropdown
+    // whatever current channel is, unsubscribe from it
+    // subscribe to the new channel
+  // updateChannel(channel) {
+    // if (this.state.lastChannel) {
+    //   unsubscribe(this.state.lastChannel);
+    // }
+
+  //   this.setState({ lastChannel: channel });
+  // }
+
+  componentWillReceiveProps(nextProps) {
+    // console.log(nextProps.select)
+    if (nextProps.selectedChannel === this.props.selectedChannel) return;
+
+    // emit unsubscribe message
+    if (this.props.selectedChannel) {
+      this.socket.emit('channel:unsubscribe', this.props.selectedChannel);
+    }
+
+    // emit subscribe message
+    this.socket.emit('channel:subscribe', nextProps.selectedChannel);
   }
 
   parseMessage(msg, emotes) {
@@ -72,7 +97,7 @@ export class MessageDisplay extends Component {
     return (
       <section className={`${styles}`}>
         <div className="container">
-
+          {this.props.selectedChannel}
           <div className="row">
             <div className="col-xs-12 col-sm-12 col-md-12 col-lg-12">
               <div className="message-ticker-user">
@@ -108,15 +133,16 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators({ getMessage }, dispatch);
 }
 
-function mapStateToProps({ message }) {
+function mapStateToProps({ message, channels }) {
   if (message.user) {
     return {
       message: message.msg,
       user: message.user.username,
       emotes: message.user.emotes,
+      selectedChannel: channels.selected
     };
   }
-  return { noMessage: message };
+  return { noMessage: message, selectedChannel: channels.selected };
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(MessageDisplay);
